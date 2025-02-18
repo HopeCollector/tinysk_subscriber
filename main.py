@@ -47,11 +47,14 @@ address = f"tcp://{config['app']['ip']}:{config['app']['port']}"
 
 
 # %%
+# get proto class by "type" in config file
 def get_proto_class(proto_type: str) -> Any:
     global proto_type_map
     if proto_type in proto_type_map:
+        # return cached class
         return proto_type_map[proto_type]
     else:
+        # load proto file and return class
         proto_class = capnp.load(f"{pwd}/messages/{proto_type}.capnp").__dict__[
             proto_type
         ]
@@ -133,6 +136,7 @@ def create_pub_func(
     return pub_func
 
 
+# create publisher funcs for each sensor
 def init_ros_publishers():
     global name_pubfunc_map
     for sensor_name in config["sensors"]:
@@ -160,18 +164,24 @@ class SensorTask:
         print(f"Subscribed to {self.name} from {address}")
         global recv_total_bytes
         while not rospy.is_shutdown():
+            # read from socket timeout in 5ms
             if not await self.poller.poll(5):
                 continue
             data = await self.socket.recv()
+            # update total bytes received
             recv_total_bytes += len(data)
+            # decode proto message
             msg = self.proto.from_bytes_packed(data[len(self.name) :]).to_dict()
+            # add frame_id to message
             if self.frame_id:
                 msg["frame_id"] = self.frame_id
+            # publish to ros
             self.pub_func(msg)
         print(f"Unsubscribed from {self.name}")
 
 
 # %%
+# log received speed every second
 async def log_recv_speed():
     global recv_total_bytes
     while not rospy.is_shutdown():
