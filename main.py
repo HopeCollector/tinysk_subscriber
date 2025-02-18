@@ -41,6 +41,8 @@ name_pubfunc_map = {}
 with open(f"{pwd}/cfg.yml", "r") as file:
     config = yaml.safe_load(file)
 
+recv_total_bytes = 0
+
 
 # %%
 def get_proto_class(proto_type: str) -> Any:
@@ -154,10 +156,12 @@ class SensorTask:
 
     async def run(self):
         print(f"Subscribed to {self.name} from {config['app']['address']}")
+        global recv_total_bytes
         while not rospy.is_shutdown():
             if not await self.poller.poll(5):
                 continue
             data = await self.socket.recv()
+            recv_total_bytes += len(data)
             msg = self.proto.from_bytes_packed(data[len(self.name) :]).to_dict()
             if self.frame_id:
                 msg["frame_id"] = self.frame_id
@@ -166,12 +170,22 @@ class SensorTask:
 
 
 # %%
+async def log_recv_speed():
+    global recv_total_bytes
+    while not rospy.is_shutdown():
+        await asyncio.sleep(1)
+        print(f"Received {recv_total_bytes * 8 * 1e-6:.2f} Mb/s", end="\r")
+        recv_total_bytes = 0
+    print("")
+
+
 async def main():
     rospy.init_node("tinysk", anonymous=True)
     init_ros_publishers()
 
     with Context() as context:
         tasks = [SensorTask(name, context).run() for name in config["sensors"]]
+        tasks.append(log_recv_speed())
         await asyncio.gather(*tasks)
 
 
