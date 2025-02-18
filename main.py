@@ -186,9 +186,8 @@ async def log_recv_speed():
     global recv_total_bytes
     while not rospy.is_shutdown():
         await asyncio.sleep(1)
-        print(f"Received {recv_total_bytes * 8 * 1e-6:.2f} Mb/s", end="\r")
+        print(f"Received {recv_total_bytes * 8 * 1e-6:.2f} Mb/s")
         recv_total_bytes = 0
-    print("")
 
 
 async def main():
