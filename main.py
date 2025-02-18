@@ -43,6 +43,8 @@ with open(f"{pwd}/cfg.yml", "r") as file:
 
 recv_total_bytes = 0
 
+address = f"tcp://{config['app']['ip']}:{config['app']['port']}"
+
 
 # %%
 def get_proto_class(proto_type: str) -> Any:
@@ -148,14 +150,14 @@ class SensorTask:
         self.frame_id = "frame_id" in config[name] and config[name]["frame_id"]
         self.socket = ctx.socket(zmq.SUB)
         self.socket.setsockopt_string(zmq.SUBSCRIBE, name)
-        self.socket.connect(config["app"]["address"])
+        self.socket.connect(address)
         self.poller = Poller()
         self.poller.register(self.socket, zmq.POLLIN)
         self.pub_func: Callable[[dict], None] = name_pubfunc_map[name]
         self.proto = get_proto_class(config[name]["type"])
 
     async def run(self):
-        print(f"Subscribed to {self.name} from {config['app']['address']}")
+        print(f"Subscribed to {self.name} from {address}")
         global recv_total_bytes
         while not rospy.is_shutdown():
             if not await self.poller.poll(5):
