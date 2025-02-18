@@ -9,6 +9,8 @@
 
 机器人使用的开发板型号为 **RaspberryPi Zero 2W**，使用基于 aarch64(armv8) Debian12(bookwarm) 的树莓派定制操作系统
 
+本项目为**接收端**，发送端参见 https://github.com/HopeCollector/tinysk_publisher
+
 ## 环境配置
 
 使用 pip 安装依赖：
